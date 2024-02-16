@@ -5,14 +5,80 @@ package producer;
 
 import java.util.Properties;
 
-import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.StringSerializer;
-import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 
 public class ProducerApp {
-   
+
+    // Logger
+    private static final Logger log = LoggerFactory.getLogger(ProducerApp.class);
+
+    // Producer
+    private final KafkaProducer<String, String> producer;
+
+    ProducerApp() {
+        // create Producer properties
+        Properties properties = new Properties();
+        properties.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,
+                "localhost:29093,localhost:29092,localhost:29091");
+        properties.setProperty(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+        properties.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+
+        // Create a kafka producer
+        this.producer = new KafkaProducer<>(properties);
+    }
+
+    public String getGreeting() {
+        return "Hello Producer!";
+    }
+
+    public static void main(String[] args) throws InterruptedException {
+        var obj = new ProducerApp();
+        System.out.println(obj.getGreeting());
+        for (int i = 0; i < 15; i++) {
+
+            obj.sendToKafka("second_topic", "MESSAGEID=" + i);
+            Thread.sleep(1000);
+        }
+
+        // Close producer
+        obj.closeKafkaConnection();
+    }
+
+    private void sendToKafka(String topic, String message) {
+
+        // create a producer record
+        ProducerRecord<String, String> producerRecord = new ProducerRecord<>(topic, message);
+
+        // send data - asynchronous
+        // Surprisingly, even though the key is null we see all the records going to the
+        // same partition!
+        // This is not a bug, this is a performance improvement feature. Since Kafka
+        // v2.4.0, the partitioner is a Sticky Partitioner, which means the producer
+        // that receives messages sent in time close to each other will try to fill a
+        // batch into ONE partition before switching to creating a batch for another
+        // partition.
+        // To observe the round-robin feature of Kafka, we can add a Thread.sleep(1000)
+        // in between each iteration of the loop, which will force the batch to be sent
+        // and a new batch to be created for a different partition.
+        this.producer.send(producerRecord);
+
+        log.debug("SUCCESSFULLY SENT  {topic = " + topic + ", message = " + message + "}");
+    }
+
+    private void closeKafkaConnection() {
+        if (this.producer != null) {
+
+            // flush data - synchronous
+            producer.flush();
+
+            // flush and close producer
+            producer.close();
+        }
+    }
+
 }

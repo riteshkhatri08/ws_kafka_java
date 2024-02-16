@@ -3,10 +3,15 @@
  */
 package producer;
 
-import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
+
+import org.junit.jupiter.api.Test;
 
 class AppTest {
 
-    
+    @Test
+    void appHasAGreeting() {
+        ProducerApp classUnderTest = new ProducerApp();
+        assertNotNull(classUnderTest.getGreeting(), "app should have a greeting");
+    }
 }
