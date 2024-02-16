@@ -5,6 +5,8 @@ package producer;
 
 import java.util.Properties;
 
+import javax.security.auth.callback.Callback;
+
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -19,6 +21,21 @@ public class ProducerApp {
 
     // Producer
     private final KafkaProducer<String, String> producer;
+
+    // callback invoked whenevr producer sends a message
+    private static final Callback logginCallback = (recordMetadata, e) -> {
+        // executes every time a record is successfully sent or an exception is thrown
+        if (e == null) {
+            // the record was successfully sent
+            log.info("Received new metadata. \n" +
+                    "Topic:" + recordMetadata.topic() + "\n" +
+                    "Partition: " + recordMetadata.partition() + "\n" +
+                    "Offset: " + recordMetadata.offset() + "\n" +
+                    "Timestamp: " + recordMetadata.timestamp());
+        } else {
+            log.error("Error while producing", e);
+        }
+    };
 
     ProducerApp() {
         // create Producer properties
@@ -65,7 +82,7 @@ public class ProducerApp {
         // To observe the round-robin feature of Kafka, we can add a Thread.sleep(1000)
         // in between each iteration of the loop, which will force the batch to be sent
         // and a new batch to be created for a different partition.
-        this.producer.send(producerRecord);
+        this.producer.send(producerRecord, logginCallback);
 
         log.debug("SUCCESSFULLY SENT  {topic = " + topic + ", message = " + message + "}");
     }
