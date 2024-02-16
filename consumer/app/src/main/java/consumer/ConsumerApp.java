@@ -3,10 +3,13 @@
  */
 package consumer;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Properties;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.slf4j.Logger;
@@ -42,6 +45,23 @@ public class ConsumerApp {
 
     public static void main(String[] args) {
         System.out.println(new ConsumerApp().getGreeting());
+        var obj = new ConsumerApp();
+
+        // Read messages continually
+        obj.readKafkaMessages();
+
+    }
+
+    private void readKafkaMessages() {
+        Duration duration = Duration.ofMillis(100);
+        while (true) {
+            ConsumerRecords<String, String> records = consumer.poll(duration);
+
+            for (ConsumerRecord<String, String> record : records) {
+                log.info("Key: " + record.key() + ", Value: " + record.value());
+                log.info("Partition: " + record.partition() + ", Offset:" + record.offset());
+            }
+        }
 
     }
 
